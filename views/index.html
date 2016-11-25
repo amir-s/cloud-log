@@ -1,0 +1,30 @@
+<html dir="ltr" mozdisallowselectionprint moznomarginboxes>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="google" content="notranslate">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Cloud.log</title>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript">
+    	var connect = function (tk) {
+    		let socket = io.connect();
+    		socket.emit('auth', tk);
+    		socket.on('message', function (data) {
+    			console.log(data);
+    			if (data.status === 'connected') {
+    				socket.emit('join');
+    			}
+    		});
+    		socket.on('log', function (data) {
+    			console.log(data);
+    		})
+    	}
+
+    </script>
+  </head>
+  <body>
+  	<pre>connect('your token');</pre>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "cloud.log",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amir-s/cloud-log.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/amir-s/cloud-log/issues"
+  },
+  "homepage": "https://github.com/amir-s/cloud-log#readme",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "co": "^4.6.0",
+    "co-views": "^2.1.0",
+    "ejs": "^2.5.2",
+    "koa": "^1.2.4",
+    "koa-body": "^1.6.0",
+    "koa-router": "^5.4.0",
+    "koa-static": "^2.0.0",
+    "socket.io": "^1.6.0",
+    "socket.io-client": "^1.6.0"
+  }
+}
