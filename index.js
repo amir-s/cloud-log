@@ -9,7 +9,9 @@ const GoogleStrategy = require( 'passport-google-oauth2' ).Strategy;
 const SQLite3Store = require('koa-sqlite3-session');
 const passport = require('koa-passport')
 const session = require('koa-generic-session')
+const db = require('./db.js');
 const l = require('prnt');
+const config = require('./config');
 
 const server = require('http').Server(app.callback());
 const io = require('socket.io')(server);
@@ -25,8 +27,8 @@ function* requireLogin(next) {
 	}
 }
 passport.use(new GoogleStrategy({
-    clientID:     'a',
-    clientSecret: 'b',
+    clientID:     config.google.oauth2.clientID,
+    clientSecret: config.google.oauth2.clientSecret,
     callbackURL: "http://localhost:4000/auth/cb/google",
     passReqToCallback: true
   },
@@ -37,11 +39,11 @@ passport.use(new GoogleStrategy({
     // });
   }
 ));
-var db = [{
-	agent: 'agent-bcbe6ce24938bb2141e7e58390acd80a247ffe5e',
-	admin: 'admin-ee09e3dfec3c22123b7c656d9701ddfda7f0217c',
-	room: 'room-ce83e5d3644c1f2f87d3d897e431ad224dc4b860'
-}];
+// var db = [{
+// 	agent: 'agent-bcbe6ce24938bb2141e7e58390acd80a247ffe5e',
+// 	admin: 'admin-ee09e3dfec3c22123b7c656d9701ddfda7f0217c',
+// 	room: 'room-ce83e5d3644c1f2f87d3d897e431ad224dc4b860'
+// }];
 
 Object.defineProperty(db, 'find', {
 	enumerable: false,
@@ -55,6 +57,9 @@ router.get('/', function *(next) {
 	// this.redirect('/auth')
 	this.body = yield render('index');
 });
+router.get('/s', requireLogin, function*(next) {
+	this.body = 'hi';
+})
 router.get('/auth', function* (next) {
 	yield passport.authenticate('google', {
 		scope: [ 'https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/plus.profile.emails.read']
@@ -95,21 +100,25 @@ io.on('connection', (socket) => {
 
 let mem = {};
 passport.serializeUser(function(user, done) {
-	l(user)
+	l('here', user.id)
 	mem[user.id] = user;
-    done(null, user.id); 
+    done(false, user.id); 
 });
 
 passport.deserializeUser(function(id, done) {
-    done(null, mem[id]);
+	l(id);
+    done(false, mem[id]);
 });
 
-app.keys = [')k!tc0-s3cre+-sesS!on_514('];
+app.keys = [config.session.secret];
 
 app
 	.use(parse())
 	.use(session({
-		maxAge: 0
+		maxAge: 0,
+		store: new SQLite3Store('./db/sessions.sqlite', {
+			// Options specified here
+		})
 	}))
 	.use(passport.initialize())
 	.use(passport.session({
