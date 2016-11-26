@@ -1,0 +1,104 @@
+
+<html ng-app="cloudlog" lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+	<title>Cloud.log</title>
+
+		<!-- Bootstrap -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+		<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+		<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+		<!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+			<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+		<![endif]-->
+	</head>
+	<body>
+		<div class="container" ng-controller="MainCtrl as vm">
+			<h1>CloudLog</h1>
+			<table class="table table-condensed table-hover">
+				<thead>
+					<tr>
+						<th>#</th>
+						<th>Admin Token</th>
+						<th>App Token</th>
+						<th></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="token in vm.tokens track by $index">
+						<th>#{{$index}}</th>
+						<td><code>{{token.admin}}</code></td>
+						<td><code>{{token.server}}</code></td>
+						<td><a class="btn btn-defaultsm btn-default" ng-click="vm.deleteToken(token)"><i class="glyphicon glyphicon-remove"></i></a></td>
+					</tr>
+				</tbody>
+			</table>
+			<a class="btn btn-lg btn-default" ng-click="vm.generate()">Generate New</a>
+		</div>
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.0-rc.2/angular.min.js"></script>
+		
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+		<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		var connect = function (t) {
+			let socket = io.connect();
+			socket.emit('auth', {t: t, type: 'admin'});
+			socket.on('message', function (data) {
+				console.log(data);
+				if (data.status === 'connected') {
+					socket.emit('join');
+				}
+			});
+			socket.on('log', function (data) {
+				console.log.apply(console, data.args)
+			})
+		}
+
+
+		var app = angular.module('cloudlog', []);
+		app.service('API', function($http) {
+			this.getTokens = function() {
+				return $http.get('/api/getTokens').then(function (resp) {
+					return resp.data;
+				})
+			}
+			this.generate = function() {
+				return $http.get('/api/generateToken').then(function (resp) {
+					return resp.data;
+				})
+			}
+			this.deleteToken = function (t) {
+				return $http.post('/api/deleteToken', {admin: t.admin}).then(function (resp) {
+					return resp.data;
+				})	
+			}
+		})
+		app.controller('MainCtrl', function(API) {
+			var self = this;
+			self.tokens = [];
+			self.reload = function () {
+				API.getTokens().then(function (t) {
+					self.tokens = t;
+				});
+			};
+			self.reload();
+			self.generate = function () {
+				API.generate().then(self.reload);
+			}
+			self.deleteToken = function(t) {
+				API.deleteToken(t).then(self.reload);
+			}
+		})
+
+
+	</script>
+	</body>
+</html>

@@ -12,6 +12,7 @@ const session = require('koa-generic-session')
 const db = require('./db.js');
 const l = require('prnt');
 const config = require('./config');
+const co = require('co');
 
 const server = require('http').Server(app.callback());
 const io = require('socket.io')(server);
@@ -23,6 +24,8 @@ function* requireLogin(next) {
 	if (this.req.user === undefined) {
 		this.redirect('/auth');
 	}else {
+		this.user = this.req.user;
+		delete this.user._raw;
 		yield next;
 	}
 }
@@ -32,12 +35,11 @@ passport.use(new GoogleStrategy({
     callbackURL: "http://localhost:4000/auth/cb/google",
     passReqToCallback: true
   },
-  function(request, accessToken, refreshToken, profile, done) {
+  co.wrap(function*(request, accessToken, refreshToken, profile, done) {
   	l(profile);
-    // User.findOrCreate({ googleId: profile.id }, function (err, user) {
-      return done(null, profile);
-    // });
-  }
+  	let user = yield db.findOrCreateUser(profile);
+	return done(null, user);
+  })
 ));
 // var db = [{
 // 	agent: 'agent-bcbe6ce24938bb2141e7e58390acd80a247ffe5e',
@@ -57,8 +59,26 @@ router.get('/', function *(next) {
 	// this.redirect('/auth')
 	this.body = yield render('index');
 });
-router.get('/s', requireLogin, function*(next) {
-	this.body = 'hi';
+router.get('/app', requireLogin, function*(next) {
+	this.body = yield render('app');
+})
+router.get('/api/getTokens', requireLogin, function*(next) {
+	this.body = yield db.getTokens({user_id: this.user.id});
+})
+router.get('/api/generateToken', requireLogin, function*(next) {
+	let t = {
+		user_id: this.user.id,
+		server: 'server-'+db.randomToken(),
+		admin: 'admin-'+db.randomToken(),
+		room: 'room-'+db.randomToken()
+	}
+	yield db.addToken(t);
+	this.body = t;
+})
+router.post('/api/deleteToken', requireLogin, function*(next) {
+	this.request.body.admin = this.request.body.admin || '';
+	yield db.deleteToken(this.user.id, this.request.body.admin);
+	this.body = {ok: true};
 })
 router.get('/auth', function* (next) {
 	yield passport.authenticate('google', {
@@ -78,13 +98,12 @@ router.get('/logout', function*(next) {
 	this.redirect('/')
 })
 io.on('connection', (socket) => {
-	socket.on('auth', (tk) => {
-		var creds = db.find(tk);
+	socket.on('auth', co.wrap(function*(data) {
+		var creds = yield db.findToken(data.t, data.type);
 		if (!creds) return socket.emit('message', {error: 'Auth failed'});
 		socket.creds = creds;
-		socket.type = tk.split('-')[0];
 		socket.emit('message', {status: 'connected'})
-	});
+	}));
 
 	socket.on('join', () => {
 		if (!socket.creds) return;
@@ -98,17 +117,13 @@ io.on('connection', (socket) => {
 	
 })
 
-let mem = {};
 passport.serializeUser(function(user, done) {
-	l('here', user.id)
-	mem[user.id] = user;
     done(false, user.id); 
 });
 
-passport.deserializeUser(function(id, done) {
-	l(id);
-    done(false, mem[id]);
-});
+passport.deserializeUser(co.wrap(function*(id, done) {
+	done(false, yield db.getUser({id}));
+}));
 
 app.keys = [config.session.secret];
 
@@ -121,9 +136,7 @@ app
 		})
 	}))
 	.use(passport.initialize())
-	.use(passport.session({
-		maxAge: 0
-	}))
+	.use(passport.session())
 	.use(router.routes())
 	.use(router.allowedMethods())
 	.use(serve(path.join(__dirname, '/public')))

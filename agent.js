@@ -1,8 +1,8 @@
 var io = require('socket.io-client');
-module.exports = function (tk) {
-	var socket = io('http://localhost:3000');
+module.exports = function (t) {
+	var socket = io('http://localhost:4000');
 	socket.on('connect', () => {
-		socket.emit('auth', tk);
+		socket.emit('auth', {t: t, type: 'server'});
 	});
 	return {
 		log: function () {

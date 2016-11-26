@@ -1,4 +1,4 @@
-var console = require('./agent')('agent-bcbe6ce24938bb2141e7e58390acd80a247ffe5e');
+var console = require('./agent')('server-6b52873d122a0596a5233887cd46b6f3c1eef5d6');
 
 setInterval(() => {
 	console.log(Math.random(), {ok: true}, ['a','b','c']);
