@@ -29,10 +29,11 @@ function* requireLogin(next) {
 		yield next;
 	}
 }
+
 passport.use(new GoogleStrategy({
     clientID:     config.google.oauth2.clientID,
     clientSecret: config.google.oauth2.clientSecret,
-    callbackURL: "http://localhost:4000/auth/cb/google",
+    callbackURL: `${config.server.url}/auth/cb/google`,
     passReqToCallback: true
   },
   co.wrap(function*(request, accessToken, refreshToken, profile, done) {
