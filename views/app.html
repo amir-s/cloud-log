@@ -35,11 +35,16 @@
 						<th>#{{$index}}</th>
 						<td><code>{{token.admin}}</code></td>
 						<td><code>{{token.server}}</code></td>
-						<td><a class="btn btn-defaultsm btn-default" ng-click="vm.deleteToken(token)"><i class="glyphicon glyphicon-remove"></i></a></td>
+						<td>
+							<a class="btn btn-sm btn-default" ng-click="vm.connect(token)"><i class="glyphicon glyphicon-import"></i></a>
+							<a class="btn btn-sm btn-default" ng-click="vm.deleteToken(token)"><i class="glyphicon glyphicon-remove"></i></a>
+							</td>
 					</tr>
 				</tbody>
 			</table>
-			<a class="btn btn-lg btn-default" ng-click="vm.generate()">Generate New</a>
+			<div class="text-center">
+				<a class="btn btn-lg btn-default" ng-click="vm.generate()">Generate New</a>
+			</div>
 		</div>
 
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
@@ -47,58 +52,69 @@
 		
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 		<script src="/socket.io/socket.io.js"></script>
-	<script type="text/javascript">
-		var connect = function (t) {
-			let socket = io.connect();
-			socket.emit('auth', {t: t, type: 'admin'});
-			socket.on('message', function (data) {
-				console.log(data);
-				if (data.status === 'connected') {
-					socket.emit('join');
+		<script type="text/javascript">
+			let socket = null;
+			var connect = function (t) {
+				if (socket) {
+					console.log("Disconnecting ...");
+					socket.disconnect();
 				}
-			});
-			socket.on('log', function (data) {
-				console.log.apply(console, data.args)
-			})
-		}
-
-
-		var app = angular.module('cloudlog', []);
-		app.service('API', function($http) {
-			this.getTokens = function() {
-				return $http.get('/api/getTokens').then(function (resp) {
-					return resp.data;
-				})
-			}
-			this.generate = function() {
-				return $http.get('/api/generateToken').then(function (resp) {
-					return resp.data;
-				})
-			}
-			this.deleteToken = function (t) {
-				return $http.post('/api/deleteToken', {admin: t.admin}).then(function (resp) {
-					return resp.data;
-				})	
-			}
-		})
-		app.controller('MainCtrl', function(API) {
-			var self = this;
-			self.tokens = [];
-			self.reload = function () {
-				API.getTokens().then(function (t) {
-					self.tokens = t;
+				socket = io.connect();
+				socket.emit('auth', {t: t, type: 'admin'});
+				socket.on('message', function (data) {
+					console.log(data.status);
+					if (data.status === 'connected') {
+						socket.emit('join');
+					}
 				});
-			};
-			self.reload();
-			self.generate = function () {
-				API.generate().then(self.reload);
+				socket.on('log', function (data) {
+					console.log.apply(console, data.args)
+				})
 			}
-			self.deleteToken = function(t) {
-				API.deleteToken(t).then(self.reload);
-			}
-		})
 
 
-	</script>
+			var app = angular.module('cloudlog', []);
+			app.service('API', function($http) {
+				this.getTokens = function() {
+					return $http.get('/api/getTokens').then(function (resp) {
+						return resp.data;
+					})
+				}
+				this.generate = function() {
+					return $http.get('/api/generateToken').then(function (resp) {
+						return resp.data;
+					})
+				}
+				this.deleteToken = function (t) {
+					return $http.post('/api/deleteToken', {admin: t.admin}).then(function (resp) {
+						return resp.data;
+					})	
+				}
+			})
+			app.controller('MainCtrl', function(API) {
+				var self = this;
+				self.tokens = [];
+				self.reload = function () {
+					API.getTokens().then(function (t) {
+						self.tokens = t;
+					});
+				};
+				self.reload();
+				self.generate = function () {
+					API.generate().then(self.reload);
+				}
+				self.deleteToken = function(t) {
+					if (confirm("This action can not be undone! Just saying!")) {
+						API.deleteToken(t).then(self.reload);
+					}
+				}
+				self.connect = function (t) {
+					console.log('Calling connect(\''+t.admin+'\')');
+					connect(t.admin);
+				}
+			})
+
+
+		</script>
 	</body>
 </html>

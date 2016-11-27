@@ -57,7 +57,7 @@ Object.defineProperty(db, 'find', {
 	}
 })
 router.get('/', function *(next) {
-	// this.redirect('/auth')
+	if (this.req.user) return this.redirect('/app');
 	this.body = yield render('index');
 });
 router.get('/app', requireLogin, function*(next) {
@@ -69,9 +69,9 @@ router.get('/api/getTokens', requireLogin, function*(next) {
 router.get('/api/generateToken', requireLogin, function*(next) {
 	let t = {
 		user_id: this.user.id,
-		server: 'server-'+db.randomToken(),
-		admin: 'admin-'+db.randomToken(),
-		room: 'room-'+db.randomToken()
+		server: 'S'+db.randomToken(),
+		admin: 'A'+db.randomToken(),
+		room: 'R'+db.randomToken()
 	}
 	yield db.addToken(t);
 	this.body = t;
@@ -92,7 +92,7 @@ router.get('/auth/cb/google', function*(next) {
 		failureRedirect: '/auth'
 	}).call(this, next);
 
-	this.redirect('/');
+	this.redirect('/app');
 });
 router.get('/logout', function*(next) {
 	this.session = null;
