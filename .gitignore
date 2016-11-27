@@ -2,3 +2,5 @@ node_modules/*
 config.js
 db/*.sqlite
 db/init
+agent/node_modules/*
+
