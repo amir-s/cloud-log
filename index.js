@@ -13,6 +13,7 @@ const db = require('./db.js');
 const l = require('prnt');
 const config = require('./config');
 const co = require('co');
+const nameGen = require('./name-gen');
 
 const server = require('http').Server(app.callback());
 const io = require('socket.io')(server);
@@ -69,6 +70,7 @@ router.get('/api/getTokens', requireLogin, function*(next) {
 router.get('/api/generateToken', requireLogin, function*(next) {
 	let t = {
 		user_id: this.user.id,
+		name: nameGen(),
 		server: 'S'+db.randomToken(),
 		admin: 'A'+db.randomToken(),
 		room: 'R'+db.randomToken()
@@ -79,6 +81,16 @@ router.get('/api/generateToken', requireLogin, function*(next) {
 router.post('/api/deleteToken', requireLogin, function*(next) {
 	this.request.body.admin = this.request.body.admin || '';
 	yield db.deleteToken(this.user.id, this.request.body.admin);
+	this.body = {ok: true};
+})
+router.post('/api/renameToken', requireLogin, function*(next) {
+	this.request.body.id = this.request.body.id || -1;
+	this.request.body.name = this.request.body.name || '';
+
+	let name = this.request.body.name.trim().substr(0, 32);
+	if (name == '') name = 'i-can-not-be-empty';
+
+	yield db.renameToken(this.user.id, this.request.body.id, name);
 	this.body = {ok: true};
 })
 router.get('/auth', function* (next) {
